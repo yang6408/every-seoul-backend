@@ -2,7 +2,7 @@ import requests
 import asyncio
 import logging
 from app.core.config import settings
-from app.schemas.open_data import SDoTEnvRow
+from app.schemas.open_data import CulturalEventRow, SDoTEnvRow
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,22 @@ async def collect_sDoTEnv(start_idx: int, end_idx: int) -> list[SDoTEnvRow]:
             processed_data.append(sensor_data)
         except Exception as e:
             logger.warning(f"S-DoT 불량 센서 데이터 스킵 - 사유: {e}")
+            continue
+            
+    return processed_data
+
+async def collect_cultural_event_info(start_idx: int, end_idx: int) -> list[CulturalEventRow]:
+    """서울시 문화행사 정보 수집 및 구조화"""
+    service_name = "culturalEventInfo"
+    raw_data = await fetch_range_data(service_name, start_idx, end_idx)
+
+    processed_data = []
+    for row in raw_data:
+        try:
+            event_data = CulturalEventRow(**row)
+            processed_data.append(event_data)
+        except Exception as e:
+            logger.warning(f"문화행사 정보 불량 - 사유: {e}")
             continue
             
     return processed_data

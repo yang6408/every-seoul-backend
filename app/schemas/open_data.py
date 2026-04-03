@@ -112,3 +112,46 @@ class SDoTEnvRow(BaseModel):
 class sDoTEnvResponse(OpenDataItem):
     """스마트서울 도시데이터 센서(S-DoT) 환경정보 (실시간) 구조체"""
     row: List[SDoTEnvRow] = Field(..., description="센서 데이터 리스트")
+
+class CulturalEventRow(BaseModel):
+    """서울시 문화행사 정보 (row 배열의 요소)"""
+    
+    CODENAME: Optional[str] = Field(None, description="분류")
+    GUNAME: Optional[str] = Field(None, description="자치구")
+    TITLE: Optional[str] = Field(None, description="공연/행사명")
+    DATE: Optional[str] = Field(None, description="날짜")
+    PLACE: Optional[str] = Field(None, description="장소")
+    ORG_NAME: Optional[str] = Field(None, description="기관명")
+    USE_TRGT: Optional[str] = Field(None, description="이용대상")
+    USE_FEE: Optional[str] = Field(None, description="이용요금")
+    INQUIRY: Optional[str] = Field(None, description="문의")
+    PLAYER: Optional[str] = Field(None, description="출연자정보")
+    PROGRAM: Optional[str] = Field(None, description="프로그램소개")
+    ETC_DESC: Optional[str] = Field(None, description="기타내용")
+    ORG_LINK: Optional[str] = Field(None, description="홈페이지 주소")
+    MAIN_IMG: Optional[str] = Field(None, description="대표이미지")
+    RGSTDATE: Optional[str] = Field(None, description="신청일")
+    TICKET: Optional[str] = Field(None, description="시민/기관")
+    STRTDATE: Optional[str] = Field(None, description="시작일")
+    END_DATE: Optional[str] = Field(None, description="종료일")
+    THEMECODE: Optional[str] = Field(None, description="테마분류")
+    
+    LOT: Optional[float] = Field(None, description="경도(Y좌표)")
+    LAT: Optional[float] = Field(None, description="위도(X좌표)")
+    
+    IS_FREE: Optional[str] = Field(None, description="유무료")
+    HMPG_ADDR: Optional[str] = Field(None, description="문화포털상세URL")
+    PRO_TIME: Optional[str] = Field(None, description="행사시간")
+
+    @model_validator(mode='before')
+    @classmethod
+    def empty_str_to_none(cls, data: Any) -> Any:
+        """빈 문자열을 None으로 치환하여 float 파싱 에러(LAT, LOT) 방지"""
+        if isinstance(data, dict):
+            for key, val in data.items():
+                if isinstance(val, str) and val.strip() == "":
+                    data[key] = None
+        return data
+
+class CulturalEventResponse(OpenDataItem):
+    row: List[CulturalEventRow] = Field(default_factory=list, description="문화행사 데이터 리스트")
