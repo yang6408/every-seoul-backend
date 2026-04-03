@@ -1,0 +1,25 @@
+// backend/.vscode/launch.json
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "FastAPI Debug: EverySeoul",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--reload",
+                "--port",
+                "8000"
+            ],
+            "jinja": true,
+            "justMyCode": true,
+            "env": {
+                // 프로젝트 루트를 PYTHONPATH로 인식시켜서 절대경로 임포트 에러 방지
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ]
+}
