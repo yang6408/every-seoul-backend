@@ -97,8 +97,8 @@ async def collect_cultural_event_info(start_idx: int, end_idx: int) -> list[Cult
     processed_data = []
     for row in raw_data:
         try:
-            sensor_data = CulturalEventRow(**row)
-            processed_data.append(sensor_data)
+            event_data = CulturalEventRow(**row)
+            processed_data.append(event_data)
         except Exception as e:
             logger.warning(f"문화행사 정보 불량 - 사유: {e}")
             continue
