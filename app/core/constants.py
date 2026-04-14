@@ -78,42 +78,22 @@ DISTRICT_RSS_URLS = {
     SeoulDistrict.MAPO: {
         RssCategory.NOTICE: "https://www.mapo.go.kr/site/main/rss/notice/list?1=1",
         RssCategory.EVENT: "https://www.mapo.go.kr/site/culture/rss/culturevent/list?1=1",
-        RssCategory.EDU: "https://www.mapo.go.kr/site/mll/rss/notice/list?1=1",
     },
     SeoulDistrict.SEODAEMUN: {
         RssCategory.NOTICE: "http://www.sdm.go.kr/rss/rssBoard.do?seq=106",
     },
-    SeoulDistrict.SEOCHO: {
-        RssCategory.NOTICE: "https://www.seocho.go.kr/rss/notice.jsp?1=1",
-    },
     SeoulDistrict.SEONGDONG: {
         RssCategory.NOTICE: "https://www.sd.go.kr/rssBbsNtt.do?bbsNo=183",
-    },
-    SeoulDistrict.SEONGBUK: {
-        RssCategory.NOTICE: "http://www.sb.go.kr/RssXML3.do?listcount=20&fid=sosik",
-        RssCategory.EVENT: "http://www.sb.go.kr/RssXML3.do?listcount=20&fid=dongevent",
-        RssCategory.EDU: "http://www.sb.go.kr/RssXML3.do?listcount=20&fid=recruit",
     },
     SeoulDistrict.YANGCHEON: {
         RssCategory.NOTICE: "https://www.yangcheon.go.kr/rss/yangcheon/board/254.do?siteCd=yangcheon",
         RssCategory.PRESS: "https://www.yangcheon.go.kr/rss/yangcheon/board/290.do?siteCd=yangcheon",
     },
-    SeoulDistrict.YEONGDEUNGPO: {
-        RssCategory.NOTICE: "https://www.ydp.go.kr/rssBbsNtt.do?bbsNo=40&integrDeptCode=",
-    },
     SeoulDistrict.YONGSAN: {
         RssCategory.NOTICE: "",
     },
-    SeoulDistrict.EUNPYEONG: {
-        RssCategory.NOTICE: "https://www.ep.go.kr/rssBbsNtt.do?bbsNo=42",
-        RssCategory.EDU: "https://www.ep.go.kr/rssBbsNtt.do?bbsNo=44",
-    },
     SeoulDistrict.JONGNO: {
         RssCategory.NOTICE: "https://www.jongno.go.kr/Rss.do?fid=Notice",
-        RssCategory.EDU: "https://www.jongno.go.kr/Rss.do?fid=Education",
-    },
-    SeoulDistrict.JUNG: {
-        RssCategory.NOTICE: "https://www.junggu.seoul.kr/rss.jsp?bid=457&returnURL=https://www.junggu.seoul.kr/content.do?cmsid=14231",
     },
     SeoulDistrict.JUNGNANG: {
         RssCategory.NOTICE: "https://www.jungnang.go.kr/portal/bbs/rss/B0000002.do?menuNo=200473",
