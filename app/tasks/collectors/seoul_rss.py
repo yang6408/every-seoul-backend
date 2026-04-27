@@ -46,8 +46,14 @@ def fetch_rss_sync(url: str) -> list:
     try:
         parsed_data = feedparser.parse(url)
         if getattr(parsed_data, "bozo", 0) == 1:
-            logger.error(f"RSS 파싱 에러 URL: {url} 원인: {parsed_data.bozo_exception}")
-            return []
+            bozo_exc = str(parsed_data.bozo_exception)
+            # content-type 불일치(text/plain 등)는 경고만 하고 계속 진행
+            # feedparser는 content-type 무관하게 XML 파싱을 시도하므로 entries가 존재할 수 있음
+            if "media type" in bozo_exc.lower() or "not an xml" in bozo_exc.lower():
+                logger.warning(f"RSS content-type 불일치 (파싱 계속 진행) URL: {url} 원인: {bozo_exc}")
+            else:
+                logger.error(f"RSS 파싱 에러 URL: {url} 원인: {bozo_exc}")
+                return []
         return parsed_data.entries
     except Exception as e:
         logger.error(f"RSS 외부 통신 예외 발생 URL: {url} 에러: {e}")
