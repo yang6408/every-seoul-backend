@@ -20,16 +20,60 @@ _BASE_HEADERS = {
     "X-Title": "EverySeoul",
 }
 
+_http_client: httpx.AsyncClient | None = None
+
+
+def init_http_client() -> None:
+    global _http_client
+    _http_client = httpx.AsyncClient(timeout=60.0)
+
+
+async def close_http_client() -> None:
+    global _http_client
+    if _http_client is not None:
+        await _http_client.aclose()
+        _http_client = None
+
 
 def _extract_json(text: str) -> str:
     import re
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+
+    # 1순위: 마크다운 코드블록 안의 JSON
+    match = re.search(r"```(?:json)?\s*(\{.*?})\s*```", text, re.DOTALL)
     if match:
         return match.group(1)
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        return match.group(0)
-    return text
+
+    # 2순위: 중괄호 깊이를 직접 추적해 가장 바깥 객체를 추출
+    # 정규식 대신 직접 파싱해야 내부 }에 속지 않음
+    start = text.find("{")
+    if start == -1:
+        return text
+
+    depth = 0
+    in_string = False
+    escape_next = False
+
+    for i, ch in enumerate(text[start:], start):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\" and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+
+    # 응답이 잘린 경우: 시작 지점부터 끝까지 반환 (파싱 실패 처리는 호출부에서)
+    return text[start:]
 
 
 async def _call_openrouter(
@@ -44,15 +88,15 @@ async def _call_openrouter(
         "max_tokens": max_tokens,
     }
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(OPENROUTER_URL, json=payload, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            content = data["choices"][0]["message"]["content"] or ""
-            return {
-                "content": content,
-                "citations": data.get("citations", []),
-            }
+        client = _http_client if _http_client is not None else httpx.AsyncClient(timeout=60.0)
+        response = await client.post(OPENROUTER_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        content = data["choices"][0]["message"]["content"] or ""
+        return {
+            "content": content,
+            "citations": data.get("citations", []),
+        }
     except httpx.HTTPStatusError as e:
         logger.error(f"OpenRouter API 오류 {e.response.status_code}: {e.response.text}")
         raise
@@ -70,10 +114,10 @@ def _build_rss_context(rss_items: list[dict]) -> str:
     if not rss_items:
         return "수집된 항목 없음"
     lines = []
-    for item in rss_items[:30]:
+    for item in rss_items[:15]:
         category = item.get("category", "")
         title = item.get("title", "")
-        summary = (item.get("summary") or "")[:200]
+        summary = (item.get("summary") or "")[:100]
         link = item.get("link", "")
         lines.append(f"[{category}] {title} | {summary} | {link}")
     return "\n".join(lines)
@@ -154,7 +198,7 @@ async def generate_district_briefing(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=2048,
+            max_tokens=4096,
         )
         result = json.loads(_extract_json(raw))
         result["generated_at"] = datetime.now().isoformat()

@@ -1,10 +1,12 @@
 import asyncio
 import logging
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
 from app.db.models.newsletter import Newsletter
+from app.db.models.user import User  # noqa: F401 — SQLAlchemy 관계 초기화에 필요
 from app.db.session import SessionLocal
 from app.schemas.open_data import CulturalEventRow, SDoTEnvRow
 from app.services import ai_service
@@ -60,8 +62,11 @@ def _pick_district_sensor(sensors: list[SDoTEnvRow], district_kr: str) -> SDoTEn
     return None
 
 
+_KST = ZoneInfo("Asia/Seoul")
+
+
 def _save_newsletter(db: Session, district_kr: str, briefing: dict, tags: list[str]) -> None:
-    today_str = date.today().strftime("%Y년 %m월 %d일")
+    today_str = datetime.now(_KST).strftime("%Y년 %m월 %d일")
     newsletter = Newsletter(
         title=f"{today_str} {district_kr} 생활정보 브리핑",
         ai_briefing=briefing,
@@ -132,4 +137,5 @@ async def _process_one_district(
         tags: list[str] = briefing.get("tags", [])
         _save_newsletter(db, district_kr, briefing, tags)
     except Exception as e:
+        db.rollback()
         logger.error(f"{district_kr} 브리핑/저장 실패: {e}")
