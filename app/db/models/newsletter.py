@@ -38,7 +38,7 @@ class UserNewsletterMatch(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     newsletter = relationship("Newsletter", back_populates="matches")
-    # user = relationship("User", back_populates="matches") # User 모델에서 연결 필요
+    user = relationship("User", back_populates="matches")
 
     __table_args__ = (
         Index("idx_user_newsletter", "user_id", "newsletter_id", unique=True),

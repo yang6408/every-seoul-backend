@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -11,10 +10,10 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone="Asia/Seoul")
 
 
-def _run_pipeline() -> None:
+async def _run_pipeline() -> None:
     logger.info("스케줄러: 일일 뉴스레터 파이프라인 트리거")
     try:
-        asyncio.run(process_daily_newsletters())
+        await process_daily_newsletters()
     except Exception as e:
         logger.error(f"스케줄러 파이프라인 실패: {e}")
 
