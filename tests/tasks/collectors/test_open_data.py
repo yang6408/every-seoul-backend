@@ -4,6 +4,11 @@ import pytest
 from app.tasks.collectors.open_data import collect_cultural_event_info, collect_sDoTEnv
 from app.schemas.open_data import CulturalEventRow, SDoTEnvRow
 
+pytestmark = pytest.mark.skipif(
+    __import__("os").getenv("RUN_INTEGRATION_TESTS") != "1",
+    reason="서울 열린데이터광장 API 통합 테스트는 RUN_INTEGRATION_TESTS=1일 때만 실행합니다.",
+)
+
 @pytest.mark.asyncio
 async def test_collect_sDoTEnv_integration():
     start_idx = 1

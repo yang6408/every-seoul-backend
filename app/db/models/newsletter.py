@@ -11,12 +11,12 @@ class Newsletter(Base):
     __tablename__ = "newsletters"
 
     id = Column(Integer, primary_key=True, index=True)
-    publish_date = Column(DateTime, default=datetime.now(), index=True)  # 새벽 발행일
+    publish_date = Column(DateTime, default=datetime.utcnow, index=True)  # 새벽 발행일
     title = Column(String(255), nullable=False)
 
-    ai_briefing = Column(JSONB, nullable=False, default={})
+    ai_briefing = Column(JSONB, nullable=False, default=dict)
 
-    tags = Column(ARRAY(String), default=[])
+    tags = Column(ARRAY(String), default=list)
 
     matches = relationship("UserNewsletterMatch", back_populates="newsletter")
 

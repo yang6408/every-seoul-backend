@@ -10,6 +10,10 @@ SEOUL_API_BASE_URL = "http://openapi.seoul.go.kr:8088/{key}/{type}/{service}/{st
 
 def _fetch_api_sync(service_name: str, start_idx: int, end_idx: int) -> dict:
     """단일 페이지 동기 요청 (공통)"""
+    if not settings.SEOUL_OPEN_API_KEY:
+        logger.error("SEOUL_OPEN_API_KEY가 설정되지 않았습니다.")
+        return None
+
     url = SEOUL_API_BASE_URL.format(
         key=settings.SEOUL_OPEN_API_KEY,
         type="json",
