@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.core.config import settings
@@ -32,3 +32,22 @@ def init_db() -> None:
     from app.db.models import newsletter, user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+
+def ensure_user_profile_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    columns = {
+        "age": "INTEGER",
+        "has_children": "BOOLEAN DEFAULT FALSE",
+        "children_count": "INTEGER",
+        "employment_status": "VARCHAR(50) DEFAULT ''",
+    }
+
+    with engine.begin() as connection:
+        for name, definition in columns.items():
+            if name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {definition}"))

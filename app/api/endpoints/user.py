@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_db
 from app.db.models.newsletter import Newsletter, UserNewsletterMatch
 from app.db.models.user import User
+from app.db.session import ensure_user_profile_columns
 from app.schemas.newsletter import FeedItem, FeedRefreshResponse, UserFeedResponse
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.services import ai_service
@@ -32,9 +33,14 @@ def _get_active_user_or_404(user_id: int, db: Session) -> User:
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(body: UserCreate, db: Session = Depends(get_db)):
+    ensure_user_profile_columns()
     user = User(
         email=body.email,
+        age=body.age,
         districts=body.districts,
+        has_children=body.has_children,
+        children_count=body.children_count,
+        employment_status=body.employment_status,
         interests=body.interests,
     )
     db.add(user)
@@ -54,10 +60,23 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{user_id}", response_model=UserResponse)
 def update_user(user_id: int, body: UserUpdate, db: Session = Depends(get_db)):
+    ensure_user_profile_columns()
     user = _get_active_user_or_404(user_id, db)
-    if body.districts is not None:
+    updated_fields = body.model_fields_set
+
+    if "age" in updated_fields:
+        user.age = body.age
+    if "districts" in updated_fields:
         user.districts = body.districts
-    if body.interests is not None:
+    if "has_children" in updated_fields:
+        user.has_children = body.has_children
+        if not body.has_children:
+            user.children_count = None
+    if "children_count" in updated_fields:
+        user.children_count = body.children_count
+    if "employment_status" in updated_fields:
+        user.employment_status = body.employment_status
+    if "interests" in updated_fields:
         user.interests = body.interests
     user.updated_at = datetime.utcnow()
     db.commit()

@@ -10,6 +10,7 @@ class NewsletterSummary(BaseModel):
     publish_date: datetime
     tags: List[str]
     district: Optional[str] = None
+    summary: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

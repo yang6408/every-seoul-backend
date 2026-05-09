@@ -25,6 +25,7 @@ def _to_summary(n: Newsletter) -> NewsletterSummary:
         publish_date=n.publish_date,
         tags=n.tags or [],
         district=briefing.get("district"),
+        summary=briefing.get("summary"),
     )
 
 

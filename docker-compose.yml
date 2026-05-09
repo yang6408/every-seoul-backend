@@ -6,8 +6,14 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/everyseoul
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: dev
+      DB_PASSWORD: "1234"
+      DB_NAME: DevDB
       ENVIRONMENT: production
+      CREATE_DATABASE: "true"
+      CREATE_DB_TABLES: "true"
     depends_on:
       db:
         condition: service_healthy
@@ -21,15 +27,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: everyseoul
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: DevDB
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: "1234"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d everyseoul"]
+      test: ["CMD-SHELL", "pg_isready -U dev -d DevDB"]
       interval: 10s
       timeout: 5s
       retries: 5

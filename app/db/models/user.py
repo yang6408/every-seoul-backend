@@ -12,7 +12,11 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
+    age = Column(Integer, nullable=True)
     districts = Column(ARRAY(String), default=list)
+    has_children = Column(Boolean, default=False)
+    children_count = Column(Integer, nullable=True)
+    employment_status = Column(String(50), default="")
     interests = Column(ARRAY(String), default=list)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

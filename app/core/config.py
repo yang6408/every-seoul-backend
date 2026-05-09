@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL
 
 
 class Settings(BaseSettings):
@@ -11,20 +12,25 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "local"
     DEBUG: bool = False
 
-    DATABASE_URL: str | None = None
-    DB_HOST: str | None = None
+    DB_HOST: str = "localhost"
     DB_PORT: int = 5432
-    DB_USER: str | None = None
-    DB_PASSWORD: str | None = None
-    DB_NAME: str | None = None
+    DB_USER: str = "dev"
+    DB_PASSWORD: str = "1234"
+    DB_NAME: str = "DevDB"
 
     SEOUL_OPEN_API_KEY: str | None = None
     OPENROUTER_API_KEY: str | None = None
+    GOOGLE_CLIENT_ID: str | None = None
+    CREATE_DATABASE: bool = False
     CREATE_DB_TABLES: bool = False
     ENABLE_SCHEDULER: bool = True
     CORS_ORIGINS: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @field_validator("DEBUG", mode="before")
     @classmethod
@@ -40,23 +46,15 @@ class Settings(BaseSettings):
         return bool(value)
 
     @property
-    def database_url(self) -> str:
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
-
-        if self.DB_HOST and self.DB_USER and self.DB_PASSWORD and self.DB_NAME:
-            return (
-                f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}"
-                f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-            )
-
-        return "postgresql+psycopg://postgres:postgres@localhost:5432/everyseoul"
-
-    @property
     def sqlalchemy_database_url(self) -> str:
-        if self.database_url.startswith("postgresql://"):
-            return self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
-        return self.database_url
+        return URL.create(
+            drivername="postgresql+psycopg",
+            username=self.DB_USER,
+            password=self.DB_PASSWORD,
+            host=self.DB_HOST,
+            port=self.DB_PORT,
+            database=self.DB_NAME,
+        ).render_as_string(hide_password=False)
 
     @property
     def cors_origins_list(self) -> list[str]:
