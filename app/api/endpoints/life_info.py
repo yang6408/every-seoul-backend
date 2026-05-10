@@ -1,4 +1,5 @@
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from zoneinfo import ZoneInfo
 
 import asyncio
@@ -216,7 +217,7 @@ async def _load_economy_info() -> list[InfoRow]:
         InfoRow(
             label="USD/KRW",
             value=f"{krw:,.2f}원",
-            meta=f"갱신 {updated}" if updated else "환율 API 기준",
+            meta=f"갱신 {_format_utc_update(updated)}" if updated else "환율 API 기준",
         )
     ]
 
@@ -325,6 +326,16 @@ def _weather_code_label(code: int | None) -> str:
     if code in {95, 96, 99}:
         return "뇌우"
     return "예보"
+
+
+def _format_utc_update(value: str) -> str:
+    try:
+        parsed = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return value
+
+    kst_time = parsed.astimezone(_KST)
+    return f"{kst_time.year}년 {kst_time.month}월 {kst_time.day}일 {kst_time:%H:%M}"
 
 
 def _format_degree(value) -> str:
