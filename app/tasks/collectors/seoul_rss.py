@@ -21,10 +21,18 @@ def clean_html_text(raw_text: str) -> str:
     decoded_text = html.unescape(decoded_text)
 
     soup = BeautifulSoup(decoded_text, "html.parser")
-    pure_text = soup.get_text(separator=" ", strip=True)
+    pure_text = soup.get_text(separator="\n", strip=True)
 
     pure_text = pure_text.replace("\xa0", " ")
-    pure_text = re.sub(r"\s+", " ", pure_text)
+    pure_text = re.sub(r"[ \t\r\f\v]+", " ", pure_text)
+    pure_text = re.sub(r" *\n+ *", "\n", pure_text)
+    pure_text = re.sub(
+        r"\s+(?=(?:\d{1,2}\.\s*[가-힣A-Za-z]|※|☞|⇨|붙임\s*\d+\.?))",
+        "\n",
+        pure_text,
+    )
+    pure_text = re.sub(r"(붙임)\n(\d+\.?)", r"\1 \2", pure_text)
+    pure_text = re.sub(r"\n{3,}", "\n\n", pure_text)
 
     return pure_text.strip()
 
