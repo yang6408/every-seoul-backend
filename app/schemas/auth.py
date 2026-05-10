@@ -13,3 +13,4 @@ class GoogleLoginResponse(BaseModel):
     name: str
     picture: str | None = None
     email: EmailStr
+    session_expires_at: str

@@ -4,15 +4,16 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
+from app.db.models.bookmark import UserBookmark
 from app.db.models.newsletter import Newsletter, UserNewsletterMatch
 from app.db.models.user import User
 from app.db.session import ensure_user_profile_columns
+from app.schemas.bookmark import BookmarkCreate, BookmarkListResponse, BookmarkResponse
 from app.schemas.newsletter import FeedItem, FeedRefreshResponse, UserFeedResponse
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserUpdate
 from app.services import ai_service
 
 logger = logging.getLogger(__name__)
@@ -31,35 +32,29 @@ def _get_active_user_or_404(user_id: int, db: Session) -> User:
     return user
 
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(body: UserCreate, db: Session = Depends(get_db)):
-    ensure_user_profile_columns()
-    user = User(
-        email=body.email,
-        age=body.age,
-        districts=body.districts,
-        has_children=body.has_children,
-        children_count=body.children_count,
-        employment_status=body.employment_status,
-        interests=body.interests,
-    )
-    db.add(user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="이미 등록된 이메일입니다.")
-    db.refresh(user)
-    return user
+def _require_same_user(user_id: int, current_user: User) -> None:
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="다른 사용자의 정보에 접근할 수 없습니다.")
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
     return _get_active_user_or_404(user_id, db)
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, body: UserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    body: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
     ensure_user_profile_columns()
     user = _get_active_user_or_404(user_id, db)
     updated_fields = body.model_fields_set
@@ -85,11 +80,98 @@ def update_user(user_id: int, body: UserUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
     user = _get_active_user_or_404(user_id, db)
     user.is_active = False
     user.updated_at = datetime.utcnow()
     db.commit()
+
+
+@router.get("/{user_id}/bookmarks", response_model=BookmarkListResponse)
+def list_bookmarks(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
+    _get_active_user_or_404(user_id, db)
+    bookmarks = (
+        db.query(UserBookmark)
+        .filter(UserBookmark.user_id == user_id)
+        .order_by(UserBookmark.created_at.desc())
+        .all()
+    )
+    return BookmarkListResponse(items=[_to_bookmark_response(item) for item in bookmarks])
+
+
+@router.post("/{user_id}/bookmarks", response_model=BookmarkResponse, status_code=status.HTTP_201_CREATED)
+def add_bookmark(
+    user_id: int,
+    body: BookmarkCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
+    _get_active_user_or_404(user_id, db)
+    existing = (
+        db.query(UserBookmark)
+        .filter(
+            UserBookmark.user_id == user_id,
+            UserBookmark.item_type == body.item_type,
+            UserBookmark.item_id == body.item_id,
+        )
+        .first()
+    )
+    if existing:
+        return _to_bookmark_response(existing)
+
+    bookmark = UserBookmark(user_id=user_id, item_type=body.item_type, item_id=body.item_id)
+    db.add(bookmark)
+    db.commit()
+    db.refresh(bookmark)
+    return _to_bookmark_response(bookmark)
+
+
+@router.delete(
+    "/{user_id}/bookmarks/{item_type}/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remove_bookmark(
+    user_id: int,
+    item_type: str,
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
+    _get_active_user_or_404(user_id, db)
+    bookmark = (
+        db.query(UserBookmark)
+        .filter(
+            UserBookmark.user_id == user_id,
+            UserBookmark.item_type == item_type,
+            UserBookmark.item_id == item_id,
+        )
+        .first()
+    )
+    if bookmark:
+        db.delete(bookmark)
+        db.commit()
+
+
+def _to_bookmark_response(bookmark: UserBookmark) -> BookmarkResponse:
+    return BookmarkResponse(
+        id=bookmark.id,
+        user_id=bookmark.user_id,
+        item_type=bookmark.item_type,
+        item_id=bookmark.item_id,
+        created_at=bookmark.created_at,
+    )
 
 
 @router.get("/{user_id}/feed", response_model=UserFeedResponse)
@@ -99,7 +181,9 @@ def get_user_feed(
     limit: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False, description="읽지 않은 항목만 조회"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
+    _require_same_user(user_id, current_user)
     _get_active_user_or_404(user_id, db)
 
     query = (
@@ -129,7 +213,13 @@ def get_user_feed(
     "/{user_id}/feed/{newsletter_id}/read",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def mark_as_read(user_id: int, newsletter_id: int, db: Session = Depends(get_db)):
+def mark_as_read(
+    user_id: int,
+    newsletter_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
     _get_active_user_or_404(user_id, db)
     match = (
         db.query(UserNewsletterMatch)
@@ -146,7 +236,12 @@ def mark_as_read(user_id: int, newsletter_id: int, db: Session = Depends(get_db)
 
 
 @router.post("/{user_id}/feed/refresh", response_model=FeedRefreshResponse)
-async def refresh_feed(user_id: int, db: Session = Depends(get_db)):
+async def refresh_feed(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_same_user(user_id, current_user)
     user = _get_active_user_or_404(user_id, db)
 
     existing_ids = {

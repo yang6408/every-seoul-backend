@@ -8,7 +8,9 @@ from sqlalchemy import text
 from app.api.router import api_router
 from app.core.config import settings
 from app.db.bootstrap import create_database_if_missing
+from app.db.models import bookmark as _bookmark_models  # noqa: F401
 from app.db.models import newsletter as _newsletter_models  # noqa: F401
+from app.db.models import session as _session_models  # noqa: F401
 from app.db.models import user as _user_models  # noqa: F401
 from app.db.session import SessionLocal, ensure_user_profile_columns, init_db
 from app.services.ai_service import close_http_client, init_http_client

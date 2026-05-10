@@ -29,7 +29,7 @@ def get_db():
 
 
 def init_db() -> None:
-    from app.db.models import newsletter, user  # noqa: F401
+    from app.db.models import bookmark, newsletter, session, user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 
