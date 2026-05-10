@@ -10,6 +10,33 @@ from app.core.constants import DISTRICT_RSS_URLS, SeoulDistrict
 
 logger = logging.getLogger(__name__)
 
+DISTRICT_DISPLAY_NAMES = {
+    SeoulDistrict.GANGNAM: "강남구",
+    SeoulDistrict.GANGDONG: "강동구",
+    SeoulDistrict.GANGBUK: "강북구",
+    SeoulDistrict.GANGSEO: "강서구",
+    SeoulDistrict.GWANAK: "관악구",
+    SeoulDistrict.GWANGJIN: "광진구",
+    SeoulDistrict.GURO: "구로구",
+    SeoulDistrict.GEUMCHEON: "금천구",
+    SeoulDistrict.NOWON: "노원구",
+    SeoulDistrict.DOBONG: "도봉구",
+    SeoulDistrict.DONGDAEMUN: "동대문구",
+    SeoulDistrict.DONGJAK: "동작구",
+    SeoulDistrict.MAPO: "마포구",
+    SeoulDistrict.SEODAEMUN: "서대문구",
+    SeoulDistrict.SEOCHO: "서초구",
+    SeoulDistrict.SEONGDONG: "성동구",
+    SeoulDistrict.SEONGBUK: "성북구",
+    SeoulDistrict.YANGCHEON: "양천구",
+    SeoulDistrict.YEONGDEUNGPO: "영등포구",
+    SeoulDistrict.YONGSAN: "용산구",
+    SeoulDistrict.EUNPYEONG: "은평구",
+    SeoulDistrict.JONGNO: "종로구",
+    SeoulDistrict.JUNG: "중구",
+    SeoulDistrict.JUNGNANG: "중랑구",
+}
+
 
 def clean_html_text(raw_text: str) -> str:
     if not raw_text:
@@ -101,7 +128,7 @@ async def collect_district_rss(district: SeoulDistrict) -> list:
                 clean_summary = clean_html_text(fixed_summary)
                 results.append(
                     {
-                        "district": district.value,
+                        "district": DISTRICT_DISPLAY_NAMES.get(district, district.value),
                         "category": category.value,
                         "title": clean_title,
                         "link": entry.get("link", ""),

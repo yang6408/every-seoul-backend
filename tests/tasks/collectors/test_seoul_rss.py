@@ -1,4 +1,7 @@
-from app.tasks.collectors.seoul_rss import clean_html_text
+import pytest
+
+from app.core.constants import RssCategory, SeoulDistrict
+from app.tasks.collectors.seoul_rss import clean_html_text, collect_district_rss
 
 
 def test_clean_html_text_preserves_block_breaks() -> None:
@@ -20,3 +23,26 @@ def test_clean_html_text_breaks_numbered_notice_items() -> None:
         "※ 참고\n"
         "붙임 1. 공고문"
     )
+
+
+@pytest.mark.asyncio
+async def test_collect_district_rss_uses_korean_district_name(monkeypatch) -> None:
+    async def fake_to_thread(function, url):
+        return [
+            {
+                "title": "행사 안내",
+                "summary": "행사 요약",
+                "link": "https://example.com",
+                "published": "2026-05-07",
+            }
+        ]
+
+    monkeypatch.setattr("app.tasks.collectors.seoul_rss.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.tasks.collectors.seoul_rss.DISTRICT_RSS_URLS",
+        {SeoulDistrict.GANGNAM: {RssCategory.EVENT: "https://example.com/rss"}},
+    )
+
+    result = await collect_district_rss(SeoulDistrict.GANGNAM)
+
+    assert result[0]["district"] == "강남구"
