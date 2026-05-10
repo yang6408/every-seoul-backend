@@ -45,7 +45,11 @@ DISTRICT_KR: dict[str, str] = {
 
 
 def _filter_rss_by_district(all_rss: list[dict], district_en: str) -> list[dict]:
-    return [item for item in all_rss if item.get("district") == district_en]
+    district_kr = DISTRICT_KR.get(district_en)
+    district_names = {district_en}
+    if district_kr:
+        district_names.add(district_kr)
+    return [item for item in all_rss if item.get("district") in district_names]
 
 
 def _filter_events_by_district(

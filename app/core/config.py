@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     SEOUL_OPEN_API_KEY: str | None = None
     OPENROUTER_API_KEY: str | None = None
     GOOGLE_CLIENT_ID: str | None = None
+    ADMIN_API_KEY: str | None = None
     CREATE_DATABASE: bool = False
     CREATE_DB_TABLES: bool = False
     ENABLE_SCHEDULER: bool = True
