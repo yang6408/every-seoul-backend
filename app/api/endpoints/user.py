@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db
@@ -239,6 +239,7 @@ def mark_as_read(
 @router.post("/{user_id}/feed/refresh", response_model=FeedRefreshResponse)
 async def refresh_feed(
     user_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -295,17 +296,28 @@ async def refresh_feed(
         db.rollback()
         raise HTTPException(status_code=500, detail="매칭 점수 저장 중 오류가 발생했습니다.")
 
-    send_user_push(
-        db,
+    background_tasks.add_task(
+        send_refresh_push,
         user_id,
-        {
-            "title": "새 맞춤 브리핑이 도착했습니다",
-            "body": f"{len(scores)}개 뉴스레터의 맞춤 점수를 계산했습니다.",
-            "url": "/",
-        },
+        len(scores),
     )
 
     return FeedRefreshResponse(
         matched=len(scores),
         message=f"{len(scores)}개 뉴스레터의 매칭 점수를 계산했습니다.",
     )
+
+
+def send_refresh_push(user_id: int, matched_count: int) -> None:
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as push_db:
+        send_user_push(
+            push_db,
+            user_id,
+            {
+                "title": "새 맞춤 브리핑이 도착했습니다",
+                "body": f"{matched_count}개 뉴스레터의 맞춤 점수를 계산했습니다.",
+                "url": "/",
+            },
+        )

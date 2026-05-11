@@ -11,10 +11,10 @@ from app.db.models.push_subscription import PushSubscription
 logger = logging.getLogger(__name__)
 
 
-def send_web_push(subscription: PushSubscription, payload: dict[str, Any]) -> bool:
+def send_web_push(subscription: PushSubscription, payload: dict[str, Any]) -> bool | None:
     if not settings.VAPID_PUBLIC_KEY or not settings.VAPID_PRIVATE_KEY:
         logger.warning("VAPID 키가 없어 Web Push 발송을 건너뜁니다.")
-        return False
+        return None
 
     try:
         webpush(
@@ -42,9 +42,14 @@ def send_user_push(db: Session, user_id: int, payload: dict[str, Any]) -> tuple[
     sent = 0
     failed = 0
     for subscription in subscriptions:
-        if send_web_push(subscription, payload):
+        result = send_web_push(subscription, payload)
+        if result is True:
             sent += 1
-        else:
+        elif result is False:
             failed += 1
+            subscription.is_active = False
+
+    if failed:
+        db.commit()
 
     return sent, failed
