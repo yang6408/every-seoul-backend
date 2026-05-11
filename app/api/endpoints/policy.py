@@ -55,6 +55,7 @@ def _policies_from_newsletters(db: Session) -> list[PolicyResponse]:
                         views=0,
                         support_detail=summary or "상세 내용은 원문 공고를 확인해 주세요.",
                         application_steps=["원문 공고 확인", "자격 요건 확인", "담당 기관 안내에 따라 진행"],
+                        source_url=str(highlight.get("link") or "").strip() or None,
                     )
                 )
                 if len(policies) >= 20:
@@ -112,6 +113,7 @@ def _policies_from_rss(items: list[dict]) -> list[PolicyResponse]:
                 views=0,
                 support_detail=summary or "상세 내용은 원문 공고를 확인해 주세요.",
                 application_steps=["원문 공고 확인", "자격 요건 확인", "담당 기관 안내에 따라 진행"],
+                source_url=str(item.get("link") or "").strip() or None,
             )
         )
         if len(policies) >= 20:

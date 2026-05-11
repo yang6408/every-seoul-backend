@@ -29,6 +29,7 @@ class PolicyResponse(BaseModel):
     relevance: int = 0
     support_detail: str
     application_steps: list[str]
+    source_url: str | None = None
 
 
 class PolicyListResponse(BaseModel):

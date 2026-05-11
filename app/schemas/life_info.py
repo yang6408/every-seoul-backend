@@ -47,6 +47,16 @@ class NoticeInfo(BaseModel):
     description: str
 
 
+class NearbyFacilityInfo(BaseModel):
+    name: str
+    category: str
+    address: str
+    description: str
+    source_url: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+
 class LifeInfoResponse(BaseModel):
     district: str
     generated_at: str
@@ -63,3 +73,4 @@ class LifeInfoResponse(BaseModel):
     safety_alerts: list[NoticeInfo]
     product_prices: list[ProductPriceInfo]
     notices: list[NoticeInfo]
+    nearby_facilities: list[NearbyFacilityInfo]

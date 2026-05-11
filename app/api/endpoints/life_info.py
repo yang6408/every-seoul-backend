@@ -11,11 +11,16 @@ from app.schemas.life_info import (
     InfoRow,
     LifeInfoResponse,
     Metric,
+    NearbyFacilityInfo,
     ProductPriceInfo,
     ProductPricePoint,
     ProductStorePrice,
 )
-from app.tasks.collectors.open_data import collect_sDoTEnv, fetch_range_data
+from app.tasks.collectors.open_data import (
+    collect_cultural_event_info,
+    collect_sDoTEnv,
+    fetch_range_data,
+)
 
 router = APIRouter()
 
@@ -55,13 +60,14 @@ _DISTRICT_COORDS = {
 async def get_life_info(district: str = Query("강남구", min_length=1)):
     now = datetime.now(_KST)
     generated_at = f"{now.year}년 {now.month}월 {now.day}일 {now:%H:%M} 기준"
-    sensor, products, forecast, roads, transit, economy = await asyncio.gather(
+    sensor, products, forecast, roads, transit, economy, nearby_facilities = await asyncio.gather(
         _load_district_sensor(district),
         _load_product_prices(),
         _load_weekly_forecast(district),
         _load_road_info(),
         _load_transit_info(),
         _load_economy_info(),
+        _load_nearby_facilities(district),
     )
 
     return LifeInfoResponse(
@@ -80,6 +86,7 @@ async def get_life_info(district: str = Query("강남구", min_length=1)):
         safety_alerts=[],
         product_prices=products,
         notices=[],
+        nearby_facilities=nearby_facilities,
     )
 
 
@@ -119,6 +126,35 @@ async def _load_product_prices() -> list[ProductPriceInfo]:
         if len(products) >= 6:
             break
     return products
+
+
+async def _load_nearby_facilities(district: str) -> list[NearbyFacilityInfo]:
+    events = await collect_cultural_event_info(1, 300)
+    facilities: list[NearbyFacilityInfo] = []
+    seen: set[str] = set()
+
+    for event in events:
+        if event.GUNAME != district:
+            continue
+        name = (event.PLACE or event.TITLE or "").strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        facilities.append(
+            NearbyFacilityInfo(
+                name=name,
+                category=event.CODENAME or event.THEMECODE or "문화·공공",
+                address=event.PLACE or district,
+                description=_facility_description(event),
+                source_url=event.HMPG_ADDR or event.ORG_LINK,
+                latitude=event.LAT,
+                longitude=event.LOT,
+            )
+        )
+        if len(facilities) >= 6:
+            break
+
+    return facilities
 
 
 async def _load_weekly_forecast(district: str) -> list[list[str]]:
@@ -247,6 +283,16 @@ class _FallbackSensor:
 
 def _format_temperature(value: float | None) -> str:
     return f"{value:.1f}°C" if value is not None else "정보 없음"
+
+
+def _facility_description(event) -> str:
+    parts = [
+        event.TITLE,
+        event.DATE,
+        "무료" if event.IS_FREE == "무료" else event.USE_FEE,
+        event.USE_TRGT,
+    ]
+    return " · ".join(str(part).strip() for part in parts if part)
 
 
 def _condition_from_sensor(sensor) -> str:

@@ -15,6 +15,7 @@ from app.schemas.bookmark import BookmarkCreate, BookmarkListResponse, BookmarkR
 from app.schemas.newsletter import FeedItem, FeedRefreshResponse, UserFeedResponse
 from app.schemas.user import UserResponse, UserUpdate
 from app.services import ai_service
+from app.services.push_service import send_user_push
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,16 @@ async def refresh_feed(
     except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="매칭 점수 저장 중 오류가 발생했습니다.")
+
+    send_user_push(
+        db,
+        user_id,
+        {
+            "title": "새 맞춤 브리핑이 도착했습니다",
+            "body": f"{len(scores)}개 뉴스레터의 맞춤 점수를 계산했습니다.",
+            "url": "/",
+        },
+    )
 
     return FeedRefreshResponse(
         matched=len(scores),

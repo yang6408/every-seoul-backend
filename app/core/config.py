@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str | None = None
     GOOGLE_CLIENT_ID: str | None = None
     ADMIN_API_KEY: str | None = None
+    VAPID_PUBLIC_KEY: str | None = None
+    VAPID_PRIVATE_KEY: str | None = None
+    VAPID_CLAIM_EMAIL: str = "mailto:admin@everyseoul.com"
     CREATE_DATABASE: bool = False
     CREATE_DB_TABLES: bool = False
     ENABLE_SCHEDULER: bool = True
